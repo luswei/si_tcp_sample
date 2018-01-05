@@ -19,14 +19,24 @@
 
 	<int:channel id="inputChannel" />
 
-	<int-ip:tcp-outbound-gateway id="outboundGateway"
-		request-channel="inputChannel" reply-channel="replyChannel"
-		connection-factory="client" />
+	<int:recipient-list-router id="customRouter"
+		input-channel="inputChannel">
+		<int:recipient channel="toGatewayChannel1" />
+		<int:recipient channel="toGatewayChannel2" />
+	</int:recipient-list-router>
 
-	<int-ip:tcp-connection-factory id="client"
-		type="client" host="localhost" port="${availableServerSocket}"
+
+	<!-- Client connection factory with interceptor -->
+
+	<int:channel id="toGatewayChannel1" />
+	
+	<int-ip:tcp-outbound-gateway id="outboundGateway1"
+		request-channel="toGatewayChannel1" reply-channel="replyChannel"
+		connection-factory="client1" />
+		
+	<int-ip:tcp-connection-factory id="client1"
+		type="client" host="localhost" port="${availableServerSocket1}"
 		single-use="true" interceptor-factory-chain="interceptorFactoryChain" />
-
 	<bean id="interceptorFactoryChain"
 		class="org.springframework.integration.ip.tcp.connection.TcpConnectionInterceptorFactoryChain">
 		<property name="interceptors">
@@ -37,21 +47,41 @@
 		</property>
 	</bean>
 
+	<!-- Client connection factory without interceptor -->
+
+	<int:channel id="toGatewayChannel2" />
+
+	<int-ip:tcp-outbound-gateway id="outboundGateway2"
+		request-channel="toGatewayChannel2" reply-channel="replyChannel"
+		connection-factory="client2" />
+
+	<int-ip:tcp-connection-factory id="client2"
+		type="client" host="localhost" port="${availableServerSocket2}"
+		single-use="true" />
+
+	<!-- Reply process -->
+
 	<int:channel id="replyChannel" />
 
 	<int:object-to-string-transformer id="clientBytes2String"
 		input-channel="replyChannel" />
 
-	<!-- Server side -->
+	<!-- Server side 1 -->
 	<int-ip:tcp-inbound-channel-adapter
-		id="inboundServer" channel="loopChannel" connection-factory="server" />
-
+		id="inboundServer1" channel="loopChannel1" connection-factory="server1" />
 	<int-ip:tcp-outbound-channel-adapter
-		id="outboundServer" channel="loopChannel" connection-factory="server" />
+		id="outboundServer1" channel="loopChannel1" connection-factory="server1" />
+	<int-ip:tcp-connection-factory id="server1"
+		type="server" port="${availableServerSocket1}" />
+	<int:channel id="loopChannel1" />
 
-	<int-ip:tcp-connection-factory id="server"
-		type="server" port="${availableServerSocket}" />
-
-	<int:channel id="loopChannel" />
+	<!-- Server side 2 -->
+	<int-ip:tcp-inbound-channel-adapter
+		id="inboundServer2" channel="loopChannel2" connection-factory="server2" />
+	<int-ip:tcp-outbound-channel-adapter
+		id="outboundServer2" channel="loopChannel2" connection-factory="server2" />
+	<int-ip:tcp-connection-factory id="server2"
+		type="server" port="${availableServerSocket2}" />
+	<int:channel id="loopChannel2" />
 
 </beans>
