@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-ip="http://www.springframework.org/schema/integration/ip"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/ip http://www.springframework.org/schema/integration/ip/spring-integration-ip.xsd">
+
+	<context:property-placeholder />
+
+	<context:component-scan base-package="com.neriudon.example" />
+
+	<!-- Client side -->
+	<int:gateway id="gateway"
+		service-interface="com.neriudon.example.gateway.SimpleGateway"
+		default-request-channel="inputChannel" />
+
+	<int:channel id="inputChannel" />
+
+	<int-ip:tcp-outbound-gateway id="outboundGateway"
+		request-channel="inputChannel" reply-channel="replyChannel"
+		connection-factory="client" />
+
+	<int-ip:tcp-connection-factory id="client"
+		type="client" host="localhost" port="${availableServerSocket}"
+		single-use="true" interceptor-factory-chain="interceptorFactoryChain" />
+
+	<bean id="interceptorFactoryChain"
+		class="org.springframework.integration.ip.tcp.connection.TcpConnectionInterceptorFactoryChain">
+		<property name="interceptors">
+			<array>
+				<bean
+					class="com.neriudon.example.tcp.interceptor.SimpleInterceptorFactory" />
+			</array>
+		</property>
+	</bean>
+
+	<int:channel id="replyChannel" />
+
+	<int:object-to-string-transformer id="clientBytes2String"
+		input-channel="replyChannel" />
+
+	<!-- Server side -->
+	<int-ip:tcp-inbound-channel-adapter
+		id="inboundServer" channel="loopChannel" connection-factory="server" />
+
+	<int-ip:tcp-outbound-channel-adapter
+		id="outboundServer" channel="loopChannel" connection-factory="server" />
+
+	<int-ip:tcp-connection-factory id="server"
+		type="server" port="${availableServerSocket}" />
+
+	<int:channel id="loopChannel" />
+
+</beans>
